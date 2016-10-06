@@ -8,6 +8,8 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
+import com.google.api.services.sheets.v4.model.Sheet;
+
 import java.io.File;
 
 
@@ -45,6 +47,24 @@ public class MainActivity extends AppCompatActivity {
         //EditText editText = (EditText) findViewById(R.id.edit_message);
         String message = "Will be taking a picture here";
         intent.putExtra(EXTRA_MESSAGE, message);
+        int requestCode = 1571;
+        startActivityForResult(intent, requestCode);
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Intent intent = new Intent(this, SheetsActivity.class);
+        Bundle extras = new Bundle();
+
+        String date = data.getStringExtra("EXTRA_DATE");
+        String latitude = data.getStringExtra("EXTRA_LATITUDE");
+        String longitude = data.getStringExtra("EXTRA_LONGITUDE");
+
+        extras.putString("EXTRA_DATE", date);
+        extras.putString("EXTRA_LATITUDE", latitude);
+        extras.putString("EXTRA_LONGITUDE", longitude);
+        intent.putExtras(extras);
+
+        intent.putExtras(extras);
         startActivity(intent);
     }
 

@@ -3,8 +3,12 @@ package com.example.myfirst.myapplication;
 import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
+
+import java.text.DateFormat;
+import java.util.Date;
 
 public class takingPic extends AppCompatActivity {
 
@@ -22,5 +26,24 @@ public class takingPic extends AppCompatActivity {
         ViewGroup layout = (ViewGroup) findViewById(R.id.activity_taking_pic);
         layout.addView(textView);
 
+    }
+
+    public void sendInfo(View view) {
+
+        Intent intent = new Intent();
+        Bundle extras = new Bundle();
+
+        String date = DateFormat.getDateTimeInstance().format(new Date());
+
+        String latitude = "42.032974";
+        String longitude = "-103.820801";
+
+        extras.putString("EXTRA_DATE", date);
+        extras.putString("EXTRA_LATITUDE", latitude);
+        extras.putString("EXTRA_LONGITUDE", longitude);
+        intent.putExtras(extras);
+
+        setResult(RESULT_OK, intent);
+        finish();
     }
 }
