@@ -8,8 +8,6 @@ import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
 
-import com.google.api.services.sheets.v4.model.Sheet;
-
 import java.io.File;
 
 
@@ -55,14 +53,17 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = new Intent(this, SheetsActivity.class);
         Bundle extras = new Bundle();
 
-        String date = data.getStringExtra("EXTRA_DATE");
-        String latitude = data.getStringExtra("EXTRA_LATITUDE");
-        String longitude = data.getStringExtra("EXTRA_LONGITUDE");
+        String date          = data.getStringExtra("EXTRA_DATE");
+        Double latitude      = 39.190611;
+        Double longitude     = -96.584056;
+        Double temperature   = 57.3;
+        Double precipitation = 0.43;
 
         extras.putString("EXTRA_DATE", date);
-        extras.putString("EXTRA_LATITUDE", latitude);
-        extras.putString("EXTRA_LONGITUDE", longitude);
-        intent.putExtras(extras);
+        extras.putDouble("EXTRA_LATITUDE", latitude);
+        extras.putDouble("EXTRA_LONGITUDE", longitude);
+        extras.putDouble("EXTRA_TEMPERATURE", temperature);
+        extras.putDouble("EXTRA_PRECIPITATION", precipitation);
 
         intent.putExtras(extras);
         startActivity(intent);

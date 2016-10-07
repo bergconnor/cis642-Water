@@ -48,6 +48,7 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class SheetsActivity extends Activity
     implements EasyPermissions.PermissionCallbacks {
+
     GoogleAccountCredential mCredential;
     private TextView mOutputText;
     private Button mCallApiButton;
@@ -57,11 +58,18 @@ public class SheetsActivity extends Activity
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
+    static final int DATA_SIZE = 5;
+
+    static final int DATE          = 0;
+    static final int TEMPERATURE   = 1;
+    static final int PRECIPITATION = 2;
+    static final int LATITUDE      = 3;
+    static final int LONGITUDE     = 4;
 
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
 
-    private Bundle mData;
+    private String[] mData = new String[DATA_SIZE];
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +77,18 @@ public class SheetsActivity extends Activity
         setContentView(R.layout.activity_sheets);
 
         Intent intent = getIntent();
-        mData = intent.getExtras();
+        Bundle data   = intent.getExtras();
+
+        Double lat    = data.getDouble("EXTRA_LATITUDE");
+        Double lon    = data.getDouble("EXTRA_LONGITUDE");
+        Double temp   = data.getDouble("EXTRA_TEMPERATURE");
+        Double precip = data.getDouble("EXTRA_PRECIPITATION");
+
+        mData[DATE]          = data.getString("EXTRA_DATE");
+        mData[TEMPERATURE]   = temp.toString();
+        mData[PRECIPITATION] = precip.toString();
+        mData[LATITUDE]      = lat.toString();
+        mData[LONGITUDE]     = lon.toString();
 
         mCallApiButton = (Button) findViewById(R.id.uploadDataButton);
         mCallApiButton.setOnClickListener(new View.OnClickListener() {
@@ -83,6 +102,18 @@ public class SheetsActivity extends Activity
         });
 
         mOutputText = (TextView) findViewById(R.id.outputTextView);
+        String dataText = String.format("Data to be uploaded\n" +
+                                        "   Date:          %s\n" +
+                                        "   Latitude:      %s\n" +
+                                        "   Longitude:     %s\n" +
+                                        "   Temperature:   %s\n" +
+                                        "   Precipitation: %s\n",
+                                        mData[DATE],
+                                        mData[LATITUDE],
+                                        mData[LONGITUDE],
+                                        mData[TEMPERATURE],
+                                        mData[PRECIPITATION]);
+        mOutputText.setText(dataText);
 
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Sheets API ...");
@@ -315,7 +346,7 @@ public class SheetsActivity extends Activity
         @Override
         protected List<String> doInBackground(Void... params) {
             try {
-                return getDataFromApi();
+                return sendDataToApi();
             } catch (Exception e) {
                 mLastError = e;
                 cancel(true);
@@ -329,21 +360,27 @@ public class SheetsActivity extends Activity
          * @return List of names and majors
          * @throws IOException
          */
-        private List<String> getDataFromApi() throws IOException {
+        private List<String> sendDataToApi() throws IOException {
             String spreadsheetId = "1NfAkYLfNaPAYVdW5gSeYWfg-0yzf8rDfyHk10pY3-9M";
-            String range = "Sheet1!A1:C";
+            String range = "Sheet1!A1:D";
+            String hyperlink, linkName, coordinateCell;
+            //String hyperlink = "http://maps.google.com/maps?q=39.190611,-96.584056";
 
             ValueRange content = new ValueRange();
             List<List<Object>> data = new ArrayList<List<Object>>();
             List<Object> row = new ArrayList<Object>();
 
-            String date = mData.getString("EXTRA_DATE");
-            String latitude = mData.getString("EXTRA_LATITUDE");
-            String longitude = mData.getString("EXTRA_LONGITUDE");
+            for(int i = 0; i < (DATA_SIZE - 2); i++) {
+                row.add(mData[i]);
+            }
 
-            row.add(date);
-            row.add(latitude);
-            row.add(longitude);
+            hyperlink      = String.format("http://maps.google.com/maps?q=%s,%s",
+                                mData[LATITUDE], mData[LONGITUDE]);
+            linkName       = String.format("(%s, %s)",
+                                mData[LATITUDE], mData[LONGITUDE]);
+            coordinateCell = String.format("=HYPERLINK(\"%s\",\"%s\")", hyperlink, linkName);
+
+            row.add(coordinateCell);
 
             data.add(row);
 
@@ -352,7 +389,7 @@ public class SheetsActivity extends Activity
 
             this.mService.spreadsheets().values()
                     .append(spreadsheetId, range, content)
-                    .setValueInputOption("RAW")
+                    .setValueInputOption("USER_ENTERED")
                     .execute();
 
             List<String> results = new ArrayList<String>();
