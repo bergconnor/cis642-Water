@@ -58,13 +58,15 @@ public class SheetsActivity extends Activity
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
-    static final int DATA_SIZE = 5;
+    static final int DATA_SIZE = 7;
 
     static final int DATE          = 0;
-    static final int TEMPERATURE   = 1;
-    static final int PRECIPITATION = 2;
-    static final int LATITUDE      = 3;
-    static final int LONGITUDE     = 4;
+    static final int TEST          = 1;
+    static final int SERIAL        = 2;
+    static final int TEMPERATURE   = 3;
+    static final int PRECIPITATION = 4;
+    static final int LATITUDE      = 5;
+    static final int LONGITUDE     = 6;
 
     private static final String PREF_ACCOUNT_NAME = "accountName";
     private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
@@ -85,6 +87,8 @@ public class SheetsActivity extends Activity
         Double precip = data.getDouble("EXTRA_PRECIPITATION");
 
         mData[DATE]          = data.getString("EXTRA_DATE");
+        mData[TEST]          = data.getString("EXTRA_TEST");
+        mData[SERIAL]        = data.getString("EXTRA_SERIAL");
         mData[TEMPERATURE]   = temp.toString();
         mData[PRECIPITATION] = precip.toString();
         mData[LATITUDE]      = lat.toString();
@@ -104,11 +108,15 @@ public class SheetsActivity extends Activity
         mOutputText = (TextView) findViewById(R.id.outputTextView);
         String dataText = String.format("Data to be uploaded\n" +
                                         "   Date:          %s\n" +
+                                        "   Test type      %s\n" +
+                                        "   Serial Number: %s\n" +
                                         "   Latitude:      %s\n" +
                                         "   Longitude:     %s\n" +
                                         "   Temperature:   %s\n" +
                                         "   Precipitation: %s\n",
                                         mData[DATE],
+                                        mData[TEST],
+                                        mData[SERIAL],
                                         mData[LATITUDE],
                                         mData[LONGITUDE],
                                         mData[TEMPERATURE],
@@ -362,8 +370,8 @@ public class SheetsActivity extends Activity
          */
         private List<String> sendDataToApi() throws IOException {
             String spreadsheetId = "1NfAkYLfNaPAYVdW5gSeYWfg-0yzf8rDfyHk10pY3-9M";
-            String range = "Sheet1!A1:D";
-            String hyperlink, linkName, coordinateCell;
+            String range = "Sheet1!A1:F";
+            String hyperlink, linkName, coordinateCell, temp;
             //String hyperlink = "http://maps.google.com/maps?q=39.190611,-96.584056";
 
             ValueRange content = new ValueRange();
@@ -371,7 +379,8 @@ public class SheetsActivity extends Activity
             List<Object> row = new ArrayList<Object>();
 
             for(int i = 0; i < (DATA_SIZE - 2); i++) {
-                row.add(mData[i]);
+                temp = String.format("=\"%s\"", mData[i]);
+                row.add(temp);
             }
 
             hyperlink      = String.format("http://maps.google.com/maps?q=%s,%s",
@@ -403,6 +412,7 @@ public class SheetsActivity extends Activity
                     results.add(row.get(0) + ", " + row.get(4));
                 }
             }*/
+
             return results;
         }
 
@@ -418,7 +428,8 @@ public class SheetsActivity extends Activity
         protected void onPostExecute(List<String> output) {
             mProgress.hide();
             if (output == null || output.size() == 0) {
-                mOutputText.setText("No results returned.");
+                mOutputText.setText("Data uploaded.");
+                //mOutputText.setText("No results returned.");
             } else {
                 output.add(0, "Data retrieved using the Google Sheets API:");
                 mOutputText.setText(TextUtils.join("\n", output));

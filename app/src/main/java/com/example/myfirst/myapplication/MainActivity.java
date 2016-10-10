@@ -58,12 +58,19 @@ public class MainActivity extends AppCompatActivity {
         Double longitude     = -96.584056;
         Double temperature   = 57.3;
         Double precipitation = 0.43;
+        String QRCode        = data.getStringExtra("EXTRA_QRCODE");
+
+        String lines[] = QRCode.split("\\r?\\n");
+        String test    = lines[0].replace(" Test", "");
+        String serial  = lines[1].replace("Serial No. ", "");
 
         extras.putString("EXTRA_DATE", date);
         extras.putDouble("EXTRA_LATITUDE", latitude);
         extras.putDouble("EXTRA_LONGITUDE", longitude);
         extras.putDouble("EXTRA_TEMPERATURE", temperature);
         extras.putDouble("EXTRA_PRECIPITATION", precipitation);
+        extras.putString("EXTRA_TEST", test);
+        extras.putString("EXTRA_SERIAL", serial);
 
         intent.putExtras(extras);
         startActivity(intent);
