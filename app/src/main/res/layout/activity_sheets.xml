@@ -36,9 +36,8 @@
         android:layout_above="@+id/uploadDataButton"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true"
-        android:textSize="25dp"
-        android:text="Click the 'Upload Data' button to upload information to the spreadsheet."
-        android:layout_alignParentTop="true" />
+        android:textSize="20dp"
+        android:text="Click the 'Upload Data' button to upload information to the spreadsheet." />
 
     <ImageView
         android:layout_width="wrap_content"
@@ -48,4 +47,30 @@
         android:layout_centerHorizontal="true"
         android:layout_marginBottom="150dp"
         android:id="@+id/imageView3" />
+
+    <TableLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_above="@+id/outputTextView"
+        android:id="@+id/tableLayout">
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </TableLayout>
 </RelativeLayout>

@@ -1,9 +1,16 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        config {
+            keyAlias 'MyReleaseAPK'
+            keyPassword 'qy98r6de'
+            storeFile file('C:/Users/Connor/AndroidStudioProjects/MyApplication/app/app-release.apk')
+            storePassword 'qy98r6de'
+        }
+    }
     compileSdkVersion 24
     buildToolsVersion "24.0.2"
-
     defaultConfig {
         applicationId "com.example.myfirst.myapplication"
         minSdkVersion 15
@@ -20,7 +27,7 @@ android {
 }
 
 dependencies {
-    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile fileTree(include: ['*.jar'], dir: 'libs')
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.2.0'
     compile 'com.android.support:design:24.2.0'
