@@ -1,0 +1,38 @@
+{
+  "project_info": {
+    "project_number": "206678884327",
+    "firebase_url": "https://nass2950-2c967.firebaseio.com",
+    "project_id": "nass2950-2c967",
+    "storage_bucket": "nass2950-2c967.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:206678884327:android:7e759504ee3c5653",
+        "android_client_info": {
+          "package_name": "com.example.myfirst.myapplication"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "206678884327-1m6bgj1boq2r40sj66rnrcrv4vmuc3jv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [],
+      "services": {
+        "analytics_service": {
+          "status": 1
+        },
+        "appinvite_service": {
+          "status": 1,
+          "other_platform_oauth_client": []
+        },
+        "ads_service": {
+          "status": 2
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

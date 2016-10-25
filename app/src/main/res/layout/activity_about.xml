@@ -10,6 +10,26 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.myfirst.myapplication.aboutAct">
 
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <TextView
+            android:text="Longitude: is empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView7"
+            android:textSize="40sp" />
+
+        <TextView
+            android:text="Latitude: is empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:id="@+id/textView8"
+            android:textSize="40sp" />
+    </LinearLayout>
+
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -20,8 +40,10 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="get time and date"
+            android:text="get Longitude and latitude"
             android:id="@+id/button2"
-            android:layout_gravity="center" />
+            android:layout_gravity="center"
+            android:onClick="sendMessage" />
+
     </FrameLayout>
 </RelativeLayout>
