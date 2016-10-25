@@ -83,14 +83,14 @@ public class SheetsActivity extends Activity
 
         Double lat    = data.getDouble("EXTRA_LATITUDE");
         Double lon    = data.getDouble("EXTRA_LONGITUDE");
-        Double temp   = data.getDouble("EXTRA_TEMPERATURE");
-        Double precip = data.getDouble("EXTRA_PRECIPITATION");
+        String temp   = data.getString("EXTRA_TEMPERATURE");
+        String precip = data.getString("EXTRA_PRECIPITATION");
 
         mData[DATE]          = data.getString("EXTRA_DATE");
         mData[TEST]          = data.getString("EXTRA_TEST");
         mData[SERIAL]        = data.getString("EXTRA_SERIAL");
-        mData[TEMPERATURE]   = temp.toString();
-        mData[PRECIPITATION] = precip.toString();
+        mData[TEMPERATURE]   = temp;
+        mData[PRECIPITATION] = precip;
         mData[LATITUDE]      = lat.toString();
         mData[LONGITUDE]     = lon.toString();
 

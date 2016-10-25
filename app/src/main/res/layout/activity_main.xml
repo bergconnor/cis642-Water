@@ -64,8 +64,7 @@
             android:layout_height="wrap_content"
             android:text="Take Picture"
             android:id="@+id/button14"
-            android:layout_gravity="center_horizontal"
-            android:onClick="doPic" />
+            android:layout_gravity="center_horizontal" />
 
         <Button
             android:layout_width="250dp"
