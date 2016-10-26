@@ -2,6 +2,8 @@ package com.example.myfirst.myapplication;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.location.Address;
+import android.location.Geocoder;
 import android.os.Environment;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -24,13 +26,17 @@ import java.io.File;
 import java.text.DateFormat;
 import java.util.Date;
 import java.util.EnumMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 
 public class MainActivity extends AppCompatActivity {
 
     public final static String EXTRA_MESSAGE = "com.example.myfirstapp.MESSAGE";
-    private static final int CAMERA_REQUEST = 1888;
+    private static final int CAMERA_REQUEST = 1571;
+    private static final int LOCATION_REQUEST = 1838;
+
     private Button takingPicBtn;
 
     @Override
@@ -69,83 +75,80 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    /*public void doPic(View view) {
-        Intent intent = new Intent(this, takingPic.class);
-        //EditText editText = (EditText) findViewById(R.id.edit_message);
-        String message = "Will be taking a picture here";
-        intent.putExtra(EXTRA_MESSAGE, message);
-        int requestCode = 1571;
-        startActivityForResult(intent, requestCode);
-
-
-    }*/
-
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Bitmap bMap, pic;
-        if (data != null) {
-            if (requestCode == CAMERA_REQUEST && resultCode == Activity.RESULT_OK) {
-                pic = (Bitmap) data.getExtras().get("data");
-                bMap = Bitmap.createBitmap(pic, 0, 0, pic.getWidth()/2, pic.getHeight()/2);
+        Intent intent;
+        String latitude, longitude, temperature, precipitation;
 
-                Intent intent = new Intent(this, SheetsActivity.class);
-                Bundle extras = new Bundle();
+        if (data != null && resultCode == Activity.RESULT_OK    ) {
+            switch(requestCode) {
+                case CAMERA_REQUEST:
+                    intent = new Intent(this, LocationActivity.class);
+                    startActivityForResult(intent, LOCATION_REQUEST);
+                    break;
 
-//                String first =
-//                        "http://api.wunderground.com/api/0375e5a05ebf577c/conditions/q/";
-//                String lat = "39.183609";
-//                String lon = "-96.571671";
-//                String last = ".json";
-//                String weatherQuery = first + lat + "," + lon + last;
-//                JSONTask task = new JSONTask();
-//                task.execute(weatherQuery);
-
-                String contents = "";
-                String testName = "";
-                String serialNum = "";
-
-                try {
-                    int[] intArray = new int[bMap.getWidth() * bMap.getHeight()];
-
-                    bMap.getPixels(intArray, 0, bMap.getWidth(), 0, 0, bMap.getWidth(), bMap.getHeight());
-
-                    LuminanceSource source = new RGBLuminanceSource(bMap.getWidth(), bMap.getHeight(), intArray);
-                    BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
-
-                    Reader reader = new MultiFormatReader();
-                    Result result = reader.decode(bitmap);
-                    contents = result.getText();
-                    String lines[] = contents.split("\\r?\\n");
-                    testName = lines[0].replace("Test", "");
-                    serialNum = lines[1].replace("Serial No. ", "");
+                case LOCATION_REQUEST:
+                    intent = new Intent(this, SheetsActivity.class);
 
                     String date = DateFormat.getDateTimeInstance().format(new Date());
-                    Double latitude = 39.190611;
-                    Double longitude = -96.584056;
+                    String formattedDate = DateFormat.getDateInstance(DateFormat.SHORT).format(new Date());
+                    String[] dateSplit = formattedDate.split("/");
+                    String month = dateSplit[0];
+                    String day = dateSplit[1];
+                    String year = "20" + dateSplit[2];
 
-                    String temp = "61.4";//weatherData[0];//"61.2";
-                    String precip = "0.0";
+                    latitude = data.getStringExtra("LATITUDE");
+                    longitude = data.getStringExtra("LONGITUDE");
+                    List<Address> addresses;
+                    String city = "";
+                    String state = "";
+                    try {
+                        Double lat = Double.parseDouble(latitude);
+                        Double lon = Double.parseDouble(longitude);
+                        Geocoder gcd = new Geocoder(this, Locale.getDefault());
+                        addresses = gcd.getFromLocation(lat, lon, 1);
+                        city = addresses.get(0).getLocality();
+                        state = addresses.get(0).getAdminArea();
+                    }
+                    catch (Exception ex) {
+                        ex.printStackTrace();
+                        addresses = null;
+                    }
 
-                    extras.putString("EXTRA_DATE", date);
-                    extras.putDouble("EXTRA_LATITUDE", latitude);
-                    extras.putDouble("EXTRA_LONGITUDE", longitude);
-                    extras.putString("EXTRA_TEMPERATURE", temp);
-                    extras.putString("EXTRA_PRECIPITATION", precip);
-                    extras.putString("EXTRA_TEST", testName);
-                    extras.putString("EXTRA_SERIAL", serialNum);
+                    String start =
+                        "http://api.wunderground.com/api/0375e5a05ebf577c/";
+                    String data1 = "conditions/q/";
+                    String data2 = "history_" + year + month + day + "/q/";
+                    String end = ".json";
+                    String query1 = start + data1 + latitude + "," + longitude + end;
+                    String query2 = start + data2 + state + "/" + city + end;
+                    temperature = "";
+                    precipitation = "";
 
-                    intent.putExtras(extras);
+                    try {
+                        temperature = new WeatherTask().execute(query1).get();
+                        precipitation = new WeatherTask().execute(query2).get();
+                    }
+                    catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+
+                    if (precipitation.length() < 1) {
+                        precipitation = "0.00";
+                    }
+
+                    String name = "Nitrate";
+                    String serial = "00001";
+
+                    intent.putExtra("EXTRA_DATE", date);
+                    intent.putExtra("EXTRA_LATITUDE", latitude);
+                    intent.putExtra("EXTRA_LONGITUDE", longitude);
+                    intent.putExtra("EXTRA_TEMPERATURE", temperature);
+                    intent.putExtra("EXTRA_PRECIPITATION", precipitation);
+                    intent.putExtra("EXTRA_TEST", name);
+                    intent.putExtra("EXTRA_SERIAL", serial);
+
                     startActivity(intent);
-                }
-                catch (Exception ex) {
-                    ex.printStackTrace();
-                    new AlertDialog.Builder(this)
-                            .setTitle("Error")
-                            .setMessage(ex.toString())
-                            .setIcon(android.R.drawable.ic_dialog_alert)
-                            .show();
-                    //Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                    //startActivityForResult(cameraIntent, CAMERA_REQUEST);
-                }
+                    break;
             }
         }
     }

@@ -1,10 +1,11 @@
 package com.example.myfirst.myapplication;
 
-//import android.support.v7.app.AppCompatActivity;
-//import android.os.Bundle;
-
+import com.google.android.gms.appindexing.Action;
+import com.google.android.gms.appindexing.AppIndex;
+import com.google.android.gms.appindexing.Thing;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.api.client.extensions.android.http.AndroidHttp;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GooglePlayServicesAvailabilityIOException;
@@ -23,19 +24,29 @@ import com.google.api.services.sheets.v4.model.*;
 import android.Manifest;
 import android.accounts.AccountManager;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.app.Dialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.text.InputType;
 import android.text.TextUtils;
+import android.view.Gravity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -47,10 +58,11 @@ import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
 public class SheetsActivity extends Activity
-    implements EasyPermissions.PermissionCallbacks {
+        implements EasyPermissions.PermissionCallbacks {
 
     GoogleAccountCredential mCredential;
     private TextView mOutputText;
+    private TableLayout mTable;
     private Button mCallApiButton;
     ProgressDialog mProgress;
 
@@ -58,41 +70,99 @@ public class SheetsActivity extends Activity
     static final int REQUEST_AUTHORIZATION = 1001;
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
-    static final int DATA_SIZE = 7;
 
-    static final int DATE          = 0;
-    static final int TEST          = 1;
-    static final int SERIAL        = 2;
-    static final int TEMPERATURE   = 3;
-    static final int PRECIPITATION = 4;
-    static final int LATITUDE      = 5;
-    static final int LONGITUDE     = 6;
+    static final int DATE           = 0;
+    static final int TEST           = 1;
+    static final int SERIAL         = 2;
+    static final int TEMPERATURE    = 3;
+    static final int PRECIPITATION  = 4;
+    static final int LATITUDE       = 5;
+    static final int LONGITUDE      = 6;
+    static final int NAME           = 7;
+    static final int ORGANIZATION   = 8;
+    static final int COMMENT        = 9;
+    static final int DATA_SIZE      = 10;
+
+    static final int ADDITIONAL     = 3;
 
     private static final String PREF_ACCOUNT_NAME = "accountName";
-    private static final String[] SCOPES = { SheetsScopes.SPREADSHEETS };
+    private static final String[] SCOPES = {SheetsScopes.SPREADSHEETS};
 
     private String[] mData = new String[DATA_SIZE];
+    private String[] mLabels = {"Date", "Test", "Serial #", "Tempreature", "Precipitation",
+            "Latitude", "Longitude", "Name", "Organization", "Comment"};
+    /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    private GoogleApiClient client;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sheets);
 
-        Intent intent = getIntent();
-        Bundle data   = intent.getExtras();
+        mOutputText = (TextView) this.findViewById(R.id.outputTextView);
 
-        Double lat    = data.getDouble("EXTRA_LATITUDE");
-        Double lon    = data.getDouble("EXTRA_LONGITUDE");
-        String temp   = data.getString("EXTRA_TEMPERATURE");
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Additional Information");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+
+        final TextView nameLabel = new TextView(this);
+        nameLabel.setText("Name:");
+        layout.addView(nameLabel);
+
+        final EditText nameBox = new EditText(this);
+        nameBox.setInputType(InputType.TYPE_CLASS_TEXT);
+        layout.addView(nameBox);
+
+        final TextView organizationLabel = new TextView(this);
+        organizationLabel.setText("Organization:");
+        layout.addView(organizationLabel);
+
+        final EditText organizationBox = new EditText(this);
+        organizationBox.setInputType(InputType.TYPE_CLASS_TEXT);
+        layout.addView(organizationBox);
+
+        final TextView commentLabel = new TextView(this);
+        commentLabel.setText("Comment (Optional):");
+        layout.addView(commentLabel);
+
+        final EditText commentBox = new EditText(this);
+        commentBox.setInputType(InputType.TYPE_CLASS_TEXT);
+        layout.addView(commentBox);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = nameBox.getText().toString();
+                String organization = organizationBox.getText().toString();
+                String comment = commentBox.getText().toString();
+                setAdditional(name, organization, comment);
+            }
+        });
+
+        builder.show();
+
+        Intent intent = getIntent();
+        Bundle data = intent.getExtras();
+
+        String lat = data.getString("EXTRA_LATITUDE");
+        String lon = data.getString("EXTRA_LONGITUDE");
+        String temp = data.getString("EXTRA_TEMPERATURE");
         String precip = data.getString("EXTRA_PRECIPITATION");
 
-        mData[DATE]          = data.getString("EXTRA_DATE");
-        mData[TEST]          = data.getString("EXTRA_TEST");
-        mData[SERIAL]        = data.getString("EXTRA_SERIAL");
-        mData[TEMPERATURE]   = temp;
+        mData[DATE] = data.getString("EXTRA_DATE");
+        mData[TEST] = data.getString("EXTRA_TEST");
+        mData[SERIAL] = data.getString("EXTRA_SERIAL");
+        mData[TEMPERATURE] = temp;
         mData[PRECIPITATION] = precip;
-        mData[LATITUDE]      = lat.toString();
-        mData[LONGITUDE]     = lon.toString();
+        mData[LATITUDE] = lat;
+        mData[LONGITUDE] = lon;
 
         mCallApiButton = (Button) findViewById(R.id.uploadDataButton);
         mCallApiButton.setOnClickListener(new View.OnClickListener() {
@@ -105,23 +175,24 @@ public class SheetsActivity extends Activity
             }
         });
 
-        mOutputText = (TextView) findViewById(R.id.outputTextView);
-        String dataText = String.format("Data to be uploaded\n" +
-                                        "   Date:          %s\n" +
-                                        "   Test type      %s\n" +
-                                        "   Serial Number: %s\n" +
-                                        "   Latitude:      %s\n" +
-                                        "   Longitude:     %s\n" +
-                                        "   Temperature:   %s\n" +
-                                        "   Precipitation: %s\n",
-                                        mData[DATE],
-                                        mData[TEST],
-                                        mData[SERIAL],
-                                        mData[LATITUDE],
-                                        mData[LONGITUDE],
-                                        mData[TEMPERATURE],
-                                        mData[PRECIPITATION]);
-        mOutputText.setText(dataText);
+        mTable = (TableLayout) this.findViewById(R.id.table);
+        for (int i = 0; i < (mData.length - ADDITIONAL); i++) {
+                TableRow row = new TableRow(this);
+                TextView col1 = new TextView(this);
+                TextView col2 = new TextView(this);
+
+                col1.setPadding(10, 10, 10, 10);
+                col1.setGravity(Gravity.LEFT);
+                col1.setText(mLabels[i]);
+
+                col2.setPadding(10, 10, 10, 10);
+                col2.setGravity(Gravity.LEFT);
+                col2.setText(mData[i]);
+
+                row.addView(col1);
+                row.addView(col2);
+                mTable.addView(row);
+        }
 
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Sheets API ...");
@@ -130,6 +201,35 @@ public class SheetsActivity extends Activity
         mCredential = GoogleAccountCredential.usingOAuth2(
                 getApplicationContext(), Arrays.asList(SCOPES))
                 .setBackOff(new ExponentialBackOff());
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client = new GoogleApiClient.Builder(this).addApi(AppIndex.API).build();
+    }
+
+    private void setAdditional(String name, String organization, String comment) {
+        mData[NAME] = name;
+        mData[ORGANIZATION] = organization;
+        mData[COMMENT] = comment;
+
+        for (int i = NAME; i < mData.length; i++) {
+            if (mData[i].length() > 0) {
+                TableRow row = new TableRow(this);
+                TextView col1 = new TextView(this);
+                TextView col2 = new TextView(this);
+
+                col1.setPadding(10, 10, 10, 10);
+                col1.setGravity(Gravity.LEFT);
+                col1.setText(mLabels[i]);
+
+                col2.setPadding(10, 10, 10, 10);
+                col2.setGravity(Gravity.LEFT);
+                col2.setText(mData[i]);
+
+                row.addView(col1);
+                row.addView(col2);
+                mTable.addView(row);
+            }
+        }
     }
 
     /**
@@ -140,11 +240,11 @@ public class SheetsActivity extends Activity
      * appropriate.
      */
     private void getResultsFromApi() {
-        if (! isGooglePlayServicesAvailable()) {
+        if (!isGooglePlayServicesAvailable()) {
             acquireGooglePlayServices();
         } else if (mCredential.getSelectedAccountName() == null) {
             chooseAccount();
-        } else if (! isDeviceOnline()) {
+        } else if (!isDeviceOnline()) {
             mOutputText.setText("No network connection available.");
         } else {
             new MakeRequestTask(mCredential).execute();
@@ -190,17 +290,18 @@ public class SheetsActivity extends Activity
      * Called when an activity launched here (specifically, AccountPicker
      * and authorization) exits, giving you the requestCode you started it with,
      * the resultCode it returned, and any additional data from it.
+     *
      * @param requestCode code indicating which activity result is incoming.
-     * @param resultCode code indicating the result of the incoming
-     *     activity result.
-     * @param data Intent (containing result data) returned by incoming
-     *     activity result.
+     * @param resultCode  code indicating the result of the incoming
+     *                    activity result.
+     * @param data        Intent (containing result data) returned by incoming
+     *                    activity result.
      */
     @Override
     protected void onActivityResult(
             int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        switch(requestCode) {
+        switch (requestCode) {
             case REQUEST_GOOGLE_PLAY_SERVICES:
                 if (resultCode != RESULT_OK) {
                     mOutputText.setText(
@@ -236,11 +337,12 @@ public class SheetsActivity extends Activity
 
     /**
      * Respond to requests for permissions at runtime for API 23 and above.
-     * @param requestCode The request code passed in
-     *     requestPermissions(android.app.Activity, String, int, String[])
-     * @param permissions The requested permissions. Never null.
+     *
+     * @param requestCode  The request code passed in
+     *                     requestPermissions(android.app.Activity, String, int, String[])
+     * @param permissions  The requested permissions. Never null.
      * @param grantResults The grant results for the corresponding permissions
-     *     which is either PERMISSION_GRANTED or PERMISSION_DENIED. Never null.
+     *                     which is either PERMISSION_GRANTED or PERMISSION_DENIED. Never null.
      */
     @Override
     public void onRequestPermissionsResult(int requestCode,
@@ -254,9 +356,10 @@ public class SheetsActivity extends Activity
     /**
      * Callback for when a permission is granted using the EasyPermissions
      * library.
+     *
      * @param requestCode The request code associated with the requested
-     *         permission
-     * @param list The requested permission list. Never null.
+     *                    permission
+     * @param list        The requested permission list. Never null.
      */
     @Override
     public void onPermissionsGranted(int requestCode, List<String> list) {
@@ -266,9 +369,10 @@ public class SheetsActivity extends Activity
     /**
      * Callback for when a permission is denied using the EasyPermissions
      * library.
+     *
      * @param requestCode The request code associated with the requested
-     *         permission
-     * @param list The requested permission list. Never null.
+     *                    permission
+     * @param list        The requested permission list. Never null.
      */
     @Override
     public void onPermissionsDenied(int requestCode, List<String> list) {
@@ -277,6 +381,7 @@ public class SheetsActivity extends Activity
 
     /**
      * Checks whether the device currently has a network connection.
+     *
      * @return true if the device has a network connection, false otherwise.
      */
     private boolean isDeviceOnline() {
@@ -288,8 +393,9 @@ public class SheetsActivity extends Activity
 
     /**
      * Check that Google Play services APK is installed and up to date.
+     *
      * @return true if Google Play Services is available and up to
-     *     date on this device; false otherwise.
+     * date on this device; false otherwise.
      */
     private boolean isGooglePlayServicesAvailable() {
         GoogleApiAvailability apiAvailability =
@@ -317,8 +423,9 @@ public class SheetsActivity extends Activity
     /**
      * Display an error dialog showing that Google Play Services is missing
      * or out of date.
+     *
      * @param connectionStatusCode code describing the presence (or lack of)
-     *     Google Play Services on this device.
+     *                             Google Play Services on this device.
      */
     void showGooglePlayServicesAvailabilityErrorDialog(
             final int connectionStatusCode) {
@@ -331,17 +438,53 @@ public class SheetsActivity extends Activity
     }
 
     /**
+     * ATTENTION: This was auto-generated to implement the App Indexing API.
+     * See https://g.co/AppIndexing/AndroidStudio for more information.
+     */
+    public Action getIndexApiAction() {
+        Thing object = new Thing.Builder()
+                .setName("Sheets Page") // TODO: Define a title for the content shown.
+                // TODO: Make sure this auto-generated URL is correct.
+                .setUrl(Uri.parse("http://[ENTER-YOUR-URL-HERE]"))
+                .build();
+        return new Action.Builder(Action.TYPE_VIEW)
+                .setObject(object)
+                .setActionStatus(Action.STATUS_TYPE_COMPLETED)
+                .build();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        client.connect();
+        AppIndex.AppIndexApi.start(client, getIndexApiAction());
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+
+        // ATTENTION: This was auto-generated to implement the App Indexing API.
+        // See https://g.co/AppIndexing/AndroidStudio for more information.
+        AppIndex.AppIndexApi.end(client, getIndexApiAction());
+        client.disconnect();
+    }
+
+    /**
      * An asynchronous task that handles the Google Sheets API call.
      * Placing the API calls in their own task ensures the UI stays responsive.
      */
     private class MakeRequestTask extends AsyncTask<Void, Void, List<String>> {
-        private com.google.api.services.sheets.v4.Sheets mService = null;
+        private Sheets mService = null;
         private Exception mLastError = null;
 
         public MakeRequestTask(GoogleAccountCredential credential) {
             HttpTransport transport = AndroidHttp.newCompatibleTransport();
             JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-            mService = new com.google.api.services.sheets.v4.Sheets.Builder(
+            mService = new Sheets.Builder(
                     transport, jsonFactory, credential)
                     .setApplicationName("Google Sheets API Android Quickstart")
                     .build();
@@ -349,6 +492,7 @@ public class SheetsActivity extends Activity
 
         /**
          * Background task to call Google Sheets API.
+         *
          * @param params no parameters needed for this task.
          */
         @Override
@@ -365,6 +509,7 @@ public class SheetsActivity extends Activity
         /**
          * Fetch a list of names and majors of students in a sample spreadsheet:
          * https://docs.google.com/spreadsheets/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/edit
+         *
          * @return List of names and majors
          * @throws IOException
          */
@@ -378,18 +523,23 @@ public class SheetsActivity extends Activity
             List<List<Object>> data = new ArrayList<List<Object>>();
             List<Object> row = new ArrayList<Object>();
 
-            for(int i = 0; i < (DATA_SIZE - 2); i++) {
+            for (int i = 0; i < (DATA_SIZE -(ADDITIONAL + 2)); i++) {
                 temp = String.format("=\"%s\"", mData[i]);
                 row.add(temp);
             }
 
-            hyperlink      = String.format("http://maps.google.com/maps?q=%s,%s",
-                                mData[LATITUDE], mData[LONGITUDE]);
-            linkName       = String.format("(%s, %s)",
-                                mData[LATITUDE], mData[LONGITUDE]);
+            hyperlink = String.format("http://maps.google.com/maps?q=%s,%s",
+                    mData[LATITUDE], mData[LONGITUDE]);
+            linkName = String.format("(%s, %s)",
+                    mData[LATITUDE], mData[LONGITUDE]);
             coordinateCell = String.format("=HYPERLINK(\"%s\",\"%s\")", hyperlink, linkName);
 
             row.add(coordinateCell);
+
+            for (int i = NAME; i < DATA_SIZE; i++) {
+                temp = String.format("=\"%s\"", mData[i]);
+                row.add(temp);
+            }
 
             data.add(row);
 
@@ -415,7 +565,6 @@ public class SheetsActivity extends Activity
 
             return results;
         }
-
 
 
         @Override

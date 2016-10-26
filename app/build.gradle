@@ -2,31 +2,18 @@ apply plugin: 'com.android.application'
 
 android {
     useLibrary  'org.apache.http.legacy'
-    signingConfigs {
-        config {
-            keyAlias 'MyReleaseAPK'
-            keyPassword 'qy98r6de'
-            storeFile file('C:/Users/Connor/AndroidStudioProjects/MyApplication/app/app-release.apk')
-            storePassword 'qy98r6de'
-        }
-    }
     compileSdkVersion 24
     buildToolsVersion "24.0.2"
     defaultConfig {
         applicationId "com.example.myfirst.myapplication"
-        minSdkVersion 15
+        minSdkVersion 16
         targetSdkVersion 24
         versionCode 1
         versionName "1.0"
+        multiDexEnabled true
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
-        }
-        debug {
-            debuggable true
-        }
+    dexOptions {
+        javaMaxHeapSize "4g"
     }
 }
 
@@ -35,6 +22,8 @@ dependencies {
     testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:24.2.0'
     compile 'com.android.support:design:24.2.0'
+    compile 'com.android.support:support-v4:24.2.0'
+    compile 'com.google.android.gms:play-services:9.6.1'
     compile 'com.google.android.gms:play-services-appindexing:9.0.2'
     compile 'com.google.android.gms:play-services-auth:9.0.2'
     compile 'com.google.android.gms:play-services-drive:9.0.2'
