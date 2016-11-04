@@ -1,17 +1,26 @@
 package com.example.myfirst.myapplication;
 
 import android.app.Activity;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.location.Address;
 import android.location.Geocoder;
+import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.content.Intent;
+import android.text.InputType;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.TextView;
 
 import com.google.zxing.BinaryBitmap;
 import com.google.zxing.DecodeHintType;
@@ -24,6 +33,8 @@ import com.google.zxing.common.HybridBinarizer;
 
 import java.io.File;
 import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.EnumMap;
 import java.util.List;
@@ -48,8 +59,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onClick(View v) {
-                Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
-                startActivityForResult(cameraIntent, CAMERA_REQUEST);
+            dispatchCameraIntent();
             }
         });
     }
@@ -75,29 +85,94 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        Intent intent;
-        String latitude, longitude, temperature, precipitation;
+    public void dispatchCameraIntent() {
+        Intent cameraIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        File file = new File(Environment.getExternalStorageDirectory()
+                + File.separator + "image.jpg");
+        cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(file));
+        startActivityForResult(cameraIntent, CAMERA_REQUEST);
+    }
 
-        if (data != null && resultCode == Activity.RESULT_OK    ) {
+    public static Bitmap decodeSampledBitmapFromFile(String path, int reqWidth, int reqHeight) {
+
+        final BitmapFactory.Options options = new BitmapFactory.Options();
+        options.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, options);
+
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        options.inPreferredConfig = Bitmap.Config.RGB_565;
+        int inSampleSize = 1;
+
+        if (height > reqHeight) {
+            inSampleSize = Math.round((float)height / (float)reqHeight);
+        }
+
+        int expectedWidth = width / inSampleSize;
+
+        if (expectedWidth > reqWidth) {
+            inSampleSize = Math.round((float)width / (float)reqWidth);
+        }
+
+        options.inSampleSize = inSampleSize;
+        options.inJustDecodeBounds = false;
+
+        return BitmapFactory.decodeFile(path, options);
+    }
+
+    public String getPreviousDay() {
+        DateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DATE, -1);
+        String yesterday = dateFormat.format(calendar.getTime());
+
+        return yesterday;
+    }
+
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (resultCode == Activity.RESULT_OK    ) {
             switch(requestCode) {
                 case CAMERA_REQUEST:
-                    intent = new Intent(this, LocationActivity.class);
-                    startActivityForResult(intent, LOCATION_REQUEST);
+                    Intent locationIntent = new Intent(this, LocationActivity.class);
+
+                    File file = new File(Environment.getExternalStorageDirectory()
+                            + File.separator + "image.jpg");
+                    Bitmap bitmap = decodeSampledBitmapFromFile(file.getAbsolutePath(), 1000, 700);
+
+                    Matrix matrix = new Matrix();
+                    matrix.postRotate(0);
+                    Bitmap rotatedBitmap = Bitmap.createBitmap(bitmap, 0, 0,
+                            bitmap.getWidth(), bitmap.getHeight(), matrix, true);
+
+                    Bitmap croppedBitmap = Bitmap.createBitmap(rotatedBitmap, 0, 0,
+                            (rotatedBitmap.getWidth()/2), (rotatedBitmap.getHeight()/2));
+                    String contents = scanQRCode(croppedBitmap);
+                    if (contents.length() < 1) {
+                        dispatchCameraIntent();
+                    }
+                    else {
+                        locationIntent.putExtra("QRCODE", contents);
+                        startActivityForResult(locationIntent, LOCATION_REQUEST);
+                    }
                     break;
 
                 case LOCATION_REQUEST:
-                    intent = new Intent(this, SheetsActivity.class);
+                    Intent sheetsIntent = new Intent(this, SheetsActivity.class);
 
-                    String date = DateFormat.getDateTimeInstance().format(new Date());
-                    String formattedDate = DateFormat.getDateInstance(DateFormat.SHORT).format(new Date());
-                    String[] dateSplit = formattedDate.split("/");
-                    String month = dateSplit[0];
-                    String day = dateSplit[1];
-                    String year = "20" + dateSplit[2];
+                    String code = data.getStringExtra("QRCODE");
+                    String[] testInfo = code.split("\n");
+                    String name = testInfo[0].trim();
+                    String serial = testInfo[1].replaceAll("\\D+","");
 
-                    latitude = data.getStringExtra("LATITUDE");
-                    longitude = data.getStringExtra("LONGITUDE");
+                    String date = new SimpleDateFormat("MM/dd/yyyy").format(new Date());
+                    String yesterday = getPreviousDay();
+                    String[] yesterdaySplit = yesterday.split("/");
+                    String month = yesterdaySplit[0];
+                    String day = yesterdaySplit[1];
+                    String year = yesterdaySplit[2];
+
+                    String latitude = data.getStringExtra("LATITUDE");
+                    String longitude = data.getStringExtra("LONGITUDE");
                     List<Address> addresses;
                     String city = "";
                     String state = "";
@@ -121,8 +196,8 @@ public class MainActivity extends AppCompatActivity {
                     String end = ".json";
                     String query1 = start + data1 + latitude + "," + longitude + end;
                     String query2 = start + data2 + state + "/" + city + end;
-                    temperature = "";
-                    precipitation = "";
+                    String temperature = "";
+                    String precipitation = "";
 
                     try {
                         temperature = new WeatherTask().execute(query1).get();
@@ -132,25 +207,39 @@ public class MainActivity extends AppCompatActivity {
                         ex.printStackTrace();
                     }
 
-                    if (precipitation.length() < 1) {
-                        precipitation = "0.00";
-                    }
+                    sheetsIntent.putExtra("EXTRA_DATE", date);
+                    sheetsIntent.putExtra("EXTRA_LATITUDE", latitude);
+                    sheetsIntent.putExtra("EXTRA_LONGITUDE", longitude);
+                    sheetsIntent.putExtra("EXTRA_TEMPERATURE", temperature);
+                    sheetsIntent.putExtra("EXTRA_PRECIPITATION", precipitation);
+                    sheetsIntent.putExtra("EXTRA_TEST", name);
+                    sheetsIntent.putExtra("EXTRA_SERIAL", serial);
 
-                    String name = "Nitrate";
-                    String serial = "00001";
-
-                    intent.putExtra("EXTRA_DATE", date);
-                    intent.putExtra("EXTRA_LATITUDE", latitude);
-                    intent.putExtra("EXTRA_LONGITUDE", longitude);
-                    intent.putExtra("EXTRA_TEMPERATURE", temperature);
-                    intent.putExtra("EXTRA_PRECIPITATION", precipitation);
-                    intent.putExtra("EXTRA_TEST", name);
-                    intent.putExtra("EXTRA_SERIAL", serial);
-
-                    startActivity(intent);
+                    startActivity(sheetsIntent);
                     break;
             }
         }
+    }
+
+    private String scanQRCode(Bitmap image) {
+        String contents;
+        try {
+
+            int[] intArray = new int[image.getWidth() * image.getHeight()];
+
+            image.getPixels(intArray, 0, image.getWidth(), 0, 0, image.getWidth(), image.getHeight());
+
+            LuminanceSource source = new RGBLuminanceSource(image.getWidth(), image.getHeight(), intArray);
+            BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
+
+            Reader reader = new MultiFormatReader();
+            Result result = reader.decode(bitmap);
+            contents = result.getText();
+        }
+        catch (Exception ex) {
+            contents = "";
+        }
+        return contents;
     }
 
     public void doHistory(View view) {

@@ -2,6 +2,7 @@ package com.example.myfirst.myapplication;
 
 import android.os.AsyncTask;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -33,14 +34,24 @@ public class WeatherTask extends AsyncTask<String, String, String> {
             while ((line = reader.readLine()) != null) {
                 buffer.append(line);
             }
+            if (params[0].contains("history")) {
+                String finalJson = buffer.toString();
+                JSONObject parentObject = new JSONObject(finalJson);
+                JSONObject historyObject = parentObject.getJSONObject("history");
+                JSONArray dailysummaryArray = historyObject.getJSONArray("dailysummary");
+                JSONObject Object = dailysummaryArray.getJSONObject(0);
+                String precipitation = Object.getString("precipi");
+                return precipitation;
 
-            String finalJson = buffer.toString();
-            JSONObject parentObject = new JSONObject(finalJson);
-            JSONObject weather = parentObject.getJSONObject("current_observation");
-            String precipitation = weather.getString("precipi");
-            String temperature = weather.getString("temp_f");
 
-            return precipitation + ", " + temperature;
+            }
+            else if (params[0].contains("conditions")) {
+                String finalJson = buffer.toString();
+                JSONObject parentObject = new JSONObject(finalJson);
+                JSONObject current_observation = parentObject.getJSONObject("current_observation");
+                String temperature = current_observation.getString("temp_f");
+                return temperature;
+            }
         }
         catch (Exception ex) {
             ex.printStackTrace();
